@@ -7,4 +7,4 @@ require (
 	github.com/sony/gobreaker v0.5.0
 )
 
-require github.com/golang/snappy v0.0.1 // indirect
+require github.com/golang/snappy v0.0.4 // indirect
