@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/nsqio/go-nsq"
 )
 
 func TestEmitter(t *testing.T) {
@@ -66,7 +68,7 @@ func testNewEmitter(t *testing.T) {
 			InsecureSkipVerify: true,
 		},
 		Deflate:             true,
-		DeflateLevel:        1,
+		LogLevel:            nsq.LogLevelDebug,
 		Snappy:              true,
 		OutputBufferSize:    1,
 		OutputBufferTimeout: time.Second * 5,

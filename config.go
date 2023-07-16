@@ -8,6 +8,10 @@ import (
 	nsq "github.com/nsqio/go-nsq"
 )
 
+type logger interface {
+	Output(calldepth int, s string) error
+}
+
 // EmitterConfig carries the different variables to tune a newly started emitter,
 // it exposes the same configuration available from official nsq go client.
 type EmitterConfig struct {
@@ -34,7 +38,8 @@ type EmitterConfig struct {
 	TLSV1                   bool
 	TLSConfig               *tls.Config
 	Deflate                 bool
-	DeflateLevel            int
+	Logger                  logger
+	LogLevel                nsq.LogLevel
 	Snappy                  bool
 	OutputBufferSize        int64
 	OutputBufferTimeout     time.Duration
@@ -75,7 +80,8 @@ type ListenerConfig struct {
 	TLSV1                   bool
 	TLSConfig               *tls.Config
 	Deflate                 bool
-	DeflateLevel            int
+	Logger                  logger
+	LogLevel                nsq.LogLevel
 	Snappy                  bool
 	OutputBufferSize        int64
 	OutputBufferTimeout     time.Duration
@@ -123,7 +129,6 @@ func newEmitterConfig(ec EmitterConfig) (config *nsq.Config) {
 	setHeartbeatInterval(config, ec.HeartbeatInterval)
 	setSampleRate(config, ec.SampleRate)
 	setTLSV1(config, ec.TLSV1)
-	setDefaultLevel(config, ec.DeflateLevel)
 	setTLSConfig(config, ec.TLSConfig)
 	setDeflate(config, ec.Deflate)
 	setOutputBufferSize(config, ec.OutputBufferSize)
@@ -151,7 +156,6 @@ func newListenerConfig(lc ListenerConfig) (config *nsq.Config) {
 	setMaxAttempts(config, lc.MaxAttempts)
 	setLowRdyIdleTimeout(config, lc.LowRdyIdleTimeout)
 	setRDYRedistributeInterval(config, lc.RDYRedistributeInterval)
-	setDefaultLevel(config, lc.DeflateLevel)
 	setClientID(config, lc.ClientID)
 	setHostname(config, lc.Hostname)
 	setUserAgent(config, lc.UserAgent)
@@ -208,12 +212,6 @@ func setMaxRequeueDelay(config *nsq.Config, maxRequeueDelay time.Duration) {
 func setDefaultRequeueDelay(config *nsq.Config, defaultRequeueDelay time.Duration) {
 	if defaultRequeueDelay != 0 {
 		config.DefaultRequeueDelay = defaultRequeueDelay
-	}
-}
-
-func setDefaultLevel(config *nsq.Config, defaultLevel int) {
-	if defaultLevel != 0 {
-		config.DeflateLevel = defaultLevel
 	}
 }
 

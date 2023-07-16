@@ -40,6 +40,12 @@ func NewEmitter(ec EmitterConfig) (*Emitter, error) {
 		return nil, err
 	}
 
+	if ec.Logger != nil {
+		producer.SetLogger(ec.Logger, ec.LogLevel)
+	} else {
+		producer.SetLoggerLevel(nsq.LogLevelError)
+	}
+
 	return &Emitter{
 		producer: producer,
 		address:  address,

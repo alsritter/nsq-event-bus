@@ -89,7 +89,7 @@ func testOn(t *testing.T) {
 			InsecureSkipVerify: true,
 		},
 		Deflate:             true,
-		DeflateLevel:        5,
+		LogLevel:            5,
 		Snappy:              true,
 		OutputBufferSize:    16384,
 		OutputBufferTimeout: time.Millisecond * 350,

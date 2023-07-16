@@ -65,6 +65,12 @@ func On(lc ListenerConfig) error {
 		return err
 	}
 
+	if lc.Logger != nil {
+		consumer.SetLogger(lc.Logger, lc.LogLevel)
+	} else {
+		consumer.SetLoggerLevel(lc.LogLevel)
+	}
+
 	handler := handleMessage(lc)
 	consumer.AddConcurrentHandlers(handler, lc.HandlerConcurrency)
 	return consumer.ConnectToNSQLookupds(lc.Lookup)
