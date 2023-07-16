@@ -82,6 +82,7 @@ type ListenerConfig struct {
 	MaxInFlight             int
 	MsgTimeout              time.Duration
 	AuthSecret              string
+	AutoCreateTopic         bool
 }
 
 // Breaker carries the configuration for circuit breaker

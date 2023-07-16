@@ -3,6 +3,8 @@ package bus
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
 
 	nsq "github.com/nsqio/go-nsq"
 )
@@ -43,6 +45,20 @@ func On(lc ListenerConfig) error {
 		lc.HandlerConcurrency = 1
 	}
 
+	// create topic if not exists
+	if lc.AutoCreateTopic {
+		exist, err := checkTopic(lc.Lookup[0], lc.Topic)
+		if err != nil {
+			return err
+		}
+
+		if !exist {
+			if err := createTopic(lc.Topic, lc.Lookup[0]); err != nil {
+				return err
+			}
+		}
+	}
+
 	config := newListenerConfig(lc)
 	consumer, err := nsq.NewConsumer(lc.Topic, lc.Channel, config)
 	if err != nil {
@@ -77,4 +93,41 @@ func handleMessage(lc ListenerConfig) nsq.HandlerFunc {
 
 		return emitter.Emit(m.ReplyTo, res)
 	})
+}
+
+func checkTopic(lookupAddress string, topic string) (bool, error) {
+	url := fmt.Sprintf("http://%s/lookup?topic=%s", lookupAddress, topic)
+	resp, err := http.Get(url)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		// topic 存在
+		return true, nil
+	} else if resp.StatusCode == http.StatusNotFound {
+		// topic 不存在
+		return false, nil
+	} else {
+		// 其他状态码，处理错误
+		return false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+}
+
+func createTopic(topic string, nsqdAddress string) error {
+	url := fmt.Sprintf("http://%s/topic/create?topic=%s", nsqdAddress, topic)
+	resp, err := http.Post(url, "", nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		// topic 创建成功
+		return nil
+	} else {
+		// 处理错误
+		return fmt.Errorf("failed to create topic: %s", resp.Status)
+	}
 }
