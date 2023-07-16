@@ -115,19 +115,45 @@ func checkTopic(lookupAddress string, topic string) (bool, error) {
 	}
 }
 
-func createTopic(topic string, nsqdAddress string) error {
-	url := fmt.Sprintf("http://%s/topic/create?topic=%s", nsqdAddress, topic)
-	resp, err := http.Post(url, "", nil)
+func createTopic(topic string, lookupAddress string) error {
+	lookupURL := fmt.Sprintf("http://%s/nodes", lookupAddress)
+	resp, err := http.Get(lookupURL)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to get nsqd address from lookup: %s", resp.Status)
+	}
+
+	var nodes []struct {
+		Address string `json:"broadcast_address"`
+		TCPPort int    `json:"tcp_port"`
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&nodes)
+	if err != nil {
+		return err
+	}
+
+	if len(nodes) == 0 {
+		return errors.New("no nsqd nodes found in lookup")
+	}
+
+	nsqdAddress := fmt.Sprintf("%s:%d", nodes[0].Address, nodes[0].TCPPort)
+	createURL := fmt.Sprintf("http://%s/topic/create?topic=%s", nsqdAddress, topic)
+	createResp, err := http.Post(createURL, "", nil)
+	if err != nil {
+		return err
+	}
+	defer createResp.Body.Close()
+
+	if createResp.StatusCode == http.StatusOK {
 		// topic 创建成功
 		return nil
 	} else {
 		// 处理错误
-		return fmt.Errorf("failed to create topic: %s", resp.Status)
+		return fmt.Errorf("failed to create topic: %s", createResp.Status)
 	}
 }
