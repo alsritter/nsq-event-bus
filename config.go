@@ -123,6 +123,7 @@ func newEmitterConfig(ec EmitterConfig) (config *nsq.Config) {
 	setHeartbeatInterval(config, ec.HeartbeatInterval)
 	setSampleRate(config, ec.SampleRate)
 	setTLSV1(config, ec.TLSV1)
+	setDefaultLevel(config, ec.DeflateLevel)
 	setTLSConfig(config, ec.TLSConfig)
 	setDeflate(config, ec.Deflate)
 	setOutputBufferSize(config, ec.OutputBufferSize)
@@ -150,6 +151,7 @@ func newListenerConfig(lc ListenerConfig) (config *nsq.Config) {
 	setMaxAttempts(config, lc.MaxAttempts)
 	setLowRdyIdleTimeout(config, lc.LowRdyIdleTimeout)
 	setRDYRedistributeInterval(config, lc.RDYRedistributeInterval)
+	setDefaultLevel(config, lc.DeflateLevel)
 	setClientID(config, lc.ClientID)
 	setHostname(config, lc.Hostname)
 	setUserAgent(config, lc.UserAgent)
@@ -206,6 +208,12 @@ func setMaxRequeueDelay(config *nsq.Config, maxRequeueDelay time.Duration) {
 func setDefaultRequeueDelay(config *nsq.Config, defaultRequeueDelay time.Duration) {
 	if defaultRequeueDelay != 0 {
 		config.DefaultRequeueDelay = defaultRequeueDelay
+	}
+}
+
+func setDefaultLevel(config *nsq.Config, defaultLevel int) {
+	if defaultLevel != 0 {
+		config.DeflateLevel = defaultLevel
 	}
 }
 
