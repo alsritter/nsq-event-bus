@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	nsq "github.com/nsqio/go-nsq"
 	"github.com/sony/gobreaker"
@@ -84,13 +85,63 @@ func (e *Emitter) EmitAsync(topic string, payload interface{}) error {
 		for {
 			trans, ok := <-responseChan
 			if ok && trans.Error != nil {
-				log.Fatalf(trans.Error.Error())
+				log.Print(trans.Error.Error())
+				return
 			}
 		}
 	}(responseChan)
 
 	_, err = e.breaker.Execute(func() (interface{}, error) {
 		return nil, e.producer.PublishAsync(topic, body, responseChan, "")
+	})
+
+	return err
+}
+
+// EmitDelay emits a message to a specific topic using nsq producer, returning
+func (e *Emitter) EmitDelay(topic string, payload interface{}, delay time.Duration) error {
+	if len(topic) == 0 {
+		return ErrTopicRequired
+	}
+
+	body, err := e.encodeMessage(payload, "")
+	if err != nil {
+		return err
+	}
+
+	_, err = e.breaker.Execute(func() (interface{}, error) {
+		return nil, e.producer.DeferredPublish(topic, delay, body)
+	})
+
+	return err
+}
+
+// EmitAsyncDelay emits a message to a specific topic using nsq producer, but does not wait for
+// the response from `nsqd`. Returns an error if encoding payload fails and
+// logs to console if an error occurred while publishing the message.
+func (e *Emitter) EmitAsyncDelay(topic string, payload interface{}, delay time.Duration) error {
+	if len(topic) == 0 {
+		return ErrTopicRequired
+	}
+
+	body, err := e.encodeMessage(payload, "")
+	if err != nil {
+		return err
+	}
+
+	responseChan := make(chan *nsq.ProducerTransaction, 1)
+	go func(responseChan chan *nsq.ProducerTransaction) {
+		for {
+			trans, ok := <-responseChan
+			if ok && trans.Error != nil {
+				log.Print(trans.Error.Error())
+				return
+			}
+		}
+	}(responseChan)
+
+	_, err = e.breaker.Execute(func() (interface{}, error) {
+		return nil, e.producer.DeferredPublishAsync(topic, delay, body, responseChan, "")
 	})
 
 	return err
