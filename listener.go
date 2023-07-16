@@ -129,8 +129,11 @@ func createTopic(topic string, lookupAddress string) error {
 
 	var lookupResponse struct {
 		Producers []struct {
-			Address string   `json:"remote_address"`
-			Topics  []string `json:"topics"`
+			BroadcastAddress string   `json:"broadcast_address"`
+			RemoteAddress    string   `json:"remote_address"`
+			TcpPort          int      `json:"tcp_port"`
+			HttpPort         int      `json:"http_port"`
+			Topics           []string `json:"topics"`
 		} `json:"producers"`
 	}
 
@@ -143,7 +146,14 @@ func createTopic(topic string, lookupAddress string) error {
 		return errors.New("no nsqd producers found in lookup")
 	}
 
-	nsqdAddress := lookupResponse.Producers[0].Address
+	var nsqdAddress string
+	if lookupResponse.Producers[0].BroadcastAddress == "" {
+		nsqdAddress = lookupResponse.Producers[0].RemoteAddress
+	} else {
+		nsqdAddress = lookupResponse.Producers[0].BroadcastAddress + ":" +
+			fmt.Sprintf("%d", lookupResponse.Producers[0].HttpPort)
+	}
+
 	createURL := fmt.Sprintf("http://%s/topic/create?topic=%s", nsqdAddress, topic)
 	createResp, err := http.Post(createURL, "", nil)
 	if err != nil {
