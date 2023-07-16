@@ -127,21 +127,23 @@ func createTopic(topic string, lookupAddress string) error {
 		return fmt.Errorf("failed to get nsqd address from lookup: %s", resp.Status)
 	}
 
-	var nodes []struct {
-		Address string `json:"broadcast_address"`
-		TCPPort int    `json:"tcp_port"`
+	var lookupResponse struct {
+		Producers []struct {
+			Address string   `json:"remote_address"`
+			Topics  []string `json:"topics"`
+		} `json:"producers"`
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&nodes)
+	err = json.NewDecoder(resp.Body).Decode(&lookupResponse)
 	if err != nil {
 		return err
 	}
 
-	if len(nodes) == 0 {
-		return errors.New("no nsqd nodes found in lookup")
+	if len(lookupResponse.Producers) == 0 {
+		return errors.New("no nsqd producers found in lookup")
 	}
 
-	nsqdAddress := fmt.Sprintf("%s:%d", nodes[0].Address, nodes[0].TCPPort)
+	nsqdAddress := lookupResponse.Producers[0].Address
 	createURL := fmt.Sprintf("http://%s/topic/create?topic=%s", nsqdAddress, topic)
 	createResp, err := http.Post(createURL, "", nil)
 	if err != nil {
